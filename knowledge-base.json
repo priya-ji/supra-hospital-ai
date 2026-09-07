@@ -1,0 +1,112 @@
+{
+  "hospital": {
+    "name": "Supra Multi-Specialty Hospital",
+    "location": "Hyderabad",
+    "beds": 200,
+    "departments": ["Orthopaedics", "General Medicine", "Cardiology", "Paediatrics", "Surgery", "ICU", "Pharmacy"],
+    "doctors_count": 45
+  },
+  "protocols": [
+    {
+      "id": "post-tkr-pain",
+      "title": "Post-TKR Pain Management",
+      "content": "Supra Ortho uses Paracetamol 650mg QDS as first-line post-TKR. Escalate to Tramadol 50mg if VAS > 6. AVOID NSAIDs at all steps due to surgical bleeding risk.",
+      "decision_maker": "Dr. Vikram",
+      "date": "January 2025",
+      "criticality": "HIGH",
+      "department": "Orthopaedics"
+    },
+    {
+      "id": "dvt-prophylaxis",
+      "title": "DVT Prophylaxis",
+      "content": "ALL ortho surgical patients receive DVT prophylaxis: Enoxaparin 40mg SC daily starting 12 hours post-op. Duration: 14 days for TKR, 28 days for THR.",
+      "decision_maker": "Dr. Vikram",
+      "criticality": "CRITICAL",
+      "department": "Orthopaedics"
+    },
+    {
+      "id": "sepsis-protocol",
+      "title": "Sepsis Protocol v3",
+      "content": "Supra Sepsis Bundle v3 2026: blood cultures before antibiotics, lactate within 1 HOUR (tightened from v2 which was 3 hours), 30mL/kg crystalloid for hypotension, vasopressors if MAP <65 after fluids.",
+      "decision_maker": "Dr. Meera",
+      "criticality": "CRITICAL",
+      "department": "General Medicine"
+    },
+    {
+      "id": "tkr-discharge",
+      "title": "TKR Discharge Rule",
+      "content": "Do NOT discharge TKR patients before 48 hours post-op. Past incident: patient discharged at 36 hours developed DVT at home, emergency readmission.",
+      "decision_maker": "Dr. Vikram",
+      "criticality": "HIGH",
+      "department": "Orthopaedics",
+      "incident": true
+    },
+    {
+      "id": "warfarin-nsaid",
+      "title": "Warfarin-NSAID Interaction",
+      "content": "CRITICAL: Never prescribe NSAIDs to patients on Warfarin. Risk of life-threatening GI bleed. Use Paracetamol for pain.",
+      "criticality": "CRITICAL",
+      "department": "Pharmacy"
+    },
+    {
+      "id": "diabetic-fasting",
+      "title": "Diabetic Fasting Protocol",
+      "content": "For fasting patients with Type 2 DM: adjust insulin timing not dose. Skip Glimepiride on fast days, continue Metformin with evening meal.",
+      "criticality": "HIGH",
+      "department": "General Medicine"
+    },
+    {
+      "id": "verbal-orders",
+      "title": "Verbal Orders Policy",
+      "content": "NEVER accept verbal orders for medication changes without written confirmation within 1 hour. Exception: cardiac arrest only. Incident 2023: wrong dose from mishearing.",
+      "criticality": "HIGH",
+      "department": "Administration"
+    },
+    {
+      "id": "night-shift-handover",
+      "title": "Night Shift Handover",
+      "content": "15-minute structured handover using SBAR format. Include: pending labs, new admissions past 4 hours, patients for morning surgery.",
+      "department": "All"
+    }
+  ],
+  "patient_alerts": [
+    {
+      "id": "patient-rajan",
+      "name": "Rajan",
+      "age": "Unknown",
+      "critical_info": "ABSOLUTE: No ibuprofen, no aspirin, no diclofenac. Cardiac stent 2022, dual antiplatelet therapy. Previous 8 NSAID refusals documented. Family also requests — refuse firmly.",
+      "allergies": ["Ibuprofen", "Aspirin", "Diclofenac"],
+      "severity": "CRITICAL",
+      "condition": "Cardiac stent patient"
+    },
+    {
+      "id": "patient-padma",
+      "name": "Mrs. Padma",
+      "age": 62,
+      "gender": "Female",
+      "condition": "Type 2 Diabetes Mellitus",
+      "special_notes": "Observes Ekadashi fasting twice monthly. 3 hypoglycemia episodes in 2025 before protocol adjustment. Requires special fasting protocol.",
+      "severity": "MEDIUM"
+    }
+  ],
+  "formulary": {
+    "preferred_brands": [
+      {"generic": "Paracetamol", "brands": ["Calpol", "Dolo"]},
+      {"generic": "Omeprazole", "brands": ["Omez"]},
+      {"generic": "Amoxicillin", "brands": ["Mox"]},
+      {"generic": "Metformin", "brands": ["Glycomet"]}
+    ]
+  },
+  "preferences": {
+    "implants": {
+      "TKR_preferred": "Zimmer Biomet",
+      "TKR_revision": "Smith & Nephew"
+    }
+  },
+  "emergency_codes": {
+    "Code Blue": "cardiac arrest",
+    "Code Red": "fire",
+    "Code Pink": "infant abduction",
+    "Code Grey": "combative patient"
+  }
+}

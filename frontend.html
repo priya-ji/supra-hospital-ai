@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supra Hospital AI Assistant</title>
+    <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100dvh;
+            padding: 20px;
+            color: #202124;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: minmax(340px, 0.9fr) minmax(0, 1.1fr);
+            gap: 20px;
+            height: calc(100dvh - 40px);
+        }
+        
+        .left-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .input-section {
+            padding: 24px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .input-section form {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:focus-visible,
+        .form-group input:focus-visible,
+        .form-group select:focus-visible,
+        .form-group textarea:focus-visible {
+            outline: 3px solid rgba(102, 126, 234, 0.35);
+            outline-offset: 2px;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn-test {
+            background: #ff6b6b;
+            color: white;
+            font-size: 12px;
+            padding: 8px 12px;
+        }
+        
+        .btn-test:hover {
+            background: #ff5252;
+        }
+        
+        .test-queries {
+            padding: 16px 24px;
+            background: #f9f9f9;
+            border-top: 1px solid #e0e0e0;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+        }
+        
+        .test-queries h3 {
+            font-size: 12px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .test-query-btn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            margin-bottom: 8px;
+            padding: 10px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .test-query-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .test-query-btn.is-active {
+            background: #eef0ff;
+            border-color: #667eea;
+            color: #3949ab;
+        }
+        
+        .right-panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+        
+        .response-header {
+            background: #f5f5f5;
+            padding: 16px 24px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .response-header h2 {
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .badge-high {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-medium {
+            background: #e8edff;
+            color: #3949ab;
+        }
+
+        .badge-local {
+            background: #fff3cd;
+            color: #7a5a00;
+        }
+        
+        .badge-critical {
+            background: #f8d7da;
+            color: #721c24;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .response-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            gap: 10px;
+            color: #667eea;
+        }
+        
+        .spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #ddd;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .response-text {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .info-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #f0f0f0;
+        }
+        
+        .info-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+        
+        .protocol-item,
+        .alert-item {
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        
+        .alert-item {
+            border-left-color: #ff6b6b;
+        }
+        
+        .protocol-item h4,
+        .alert-item h4 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #333;
+        }
+        
+        .protocol-item p,
+        .alert-item p {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.4;
+        }
+        
+        .criticality {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 3px;
+            margin-right: 8px;
+        }
+        
+        .criticality-critical {
+            background: #ffe0e0;
+            color: #cc0000;
+        }
+        
+        .criticality-high {
+            background: #fff0e0;
+            color: #ff6600;
+        }
+        
+        .no-response {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #60656f;
+            padding: 40px;
+        }
+
+        .no-response .empty-icon {
+            width: 56px;
+            height: 56px;
+            display: grid;
+            place-items: center;
+            border-radius: 16px;
+            margin-bottom: 18px;
+            background: #eef0ff;
+            font-size: 26px;
+        }
+
+        .no-response h2 {
+            color: #30343b;
+            margin-bottom: 8px;
+            font-size: clamp(20px, 2vw, 28px);
+        }
+
+        .no-response p {
+            max-width: 460px;
+            line-height: 1.55;
+        }
+
+        .launch-steps {
+            max-width: 520px;
+            margin-top: 14px;
+            text-align: left;
+        }
+
+        .launch-steps code {
+            display: block;
+            margin: 8px 0 14px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            background: #f3f4f6;
+            color: #30343b;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 13px;
+        }
+
+        .launch-link {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 6px;
+            background: #667eea;
+            color: #fff;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .launch-link:hover {
+            background: #5368dc;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .setup-hint {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.55;
+        }
+
+        .setup-hint code {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: #f3f4f6;
+            color: #30343b;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+
+        .local-preview-notice {
+            margin-bottom: 18px;
+            padding: 14px 16px;
+            border: 1px solid #f0d58a;
+            border-left: 4px solid #d69e2e;
+            border-radius: 6px;
+            background: #fff9e8;
+            color: #664d03;
+            line-height: 1.5;
+        }
+
+        .local-preview-notice strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .clinical-note {
+            margin-top: 2px;
+            color: #666;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+        
+        .meta-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 12px;
+        }
+        
+        .meta-item {
+            background: #f5f5f5;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        
+        .meta-label {
+            font-weight: 600;
+            color: #667eea;
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .meta-value {
+            color: #666;
+        }
+
+        @media (max-width: 900px) {
+            body {
+                padding: 12px;
+            }
+
+            .container {
+                height: auto;
+                min-height: calc(100dvh - 24px);
+                grid-template-columns: 1fr;
+            }
+
+            .left-panel,
+            .right-panel {
+                min-height: 520px;
+            }
+
+            .test-queries {
+                flex: none;
+                max-height: 300px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useEffect, useState } = React;
+        const APP_URL = 'http://127.0.0.1:8000';
+        const IS_FILE_MODE = window.location.protocol === 'file:';
+        const API_BASE_URL = IS_FILE_MODE
+            ? APP_URL
+            : window.location.origin;
+        
+        function App() {
+            const [query, setQuery] = useState('');
+            const [userRole, setUserRole] = useState('Doctor');
+            const [department, setDepartment] = useState('');
+            const [response, setResponse] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
+            const [serverState, setServerState] = useState(IS_FILE_MODE ? 'checking' : 'ready');
+            
+            const testQueries = [
+                "What pain medication should I give a post-TKR patient?",
+                "Patient Rajan has knee pain, what should I prescribe?",
+                "When should I start DVT prophylaxis after surgery?",
+                "What's our sepsis protocol?",
+                "Tell me about Mrs. Padma's medication management"
+            ];
+            
+            const departments = [
+                "Orthopaedics",
+                "General Medicine",
+                "Cardiology",
+                "Paediatrics",
+                "Surgery",
+                "ICU",
+                "Pharmacy"
+            ];
+
+            const relevantAlerts = Array.isArray(response?.relevant_alerts)
+                ? response.relevant_alerts
+                : [];
+            const relevantProtocols = Array.isArray(response?.relevant_protocols)
+                ? response.relevant_protocols
+                : [];
+            const serverUnavailable = IS_FILE_MODE && serverState !== 'ready';
+            const isLocalPreview = response?.mode === 'protocol_preview';
+            const needsApiKey = typeof error === 'string'
+                && /anthropic_api_key|invalid\s+(?:x-)?api[-_\s]?key|authentication|unauthorized/i.test(error);
+
+            useEffect(() => {
+                if (!IS_FILE_MODE) return undefined;
+
+                const controller = new AbortController();
+                const timeoutId = window.setTimeout(() => controller.abort(), 3000);
+                let disposed = false;
+
+                const openSupportedApp = async () => {
+                    try {
+                        const result = await fetch(`${APP_URL}/health`, { signal: controller.signal });
+                        const health = await result.json();
+                        if (!result.ok || health.status !== 'running') throw new Error('Server health check failed');
+                        if (disposed) return;
+                        window.location.replace(APP_URL);
+                    } catch {
+                        if (!disposed) setServerState('offline');
+                    } finally {
+                        window.clearTimeout(timeoutId);
+                    }
+                };
+
+                void openSupportedApp();
+                return () => {
+                    disposed = true;
+                    controller.abort();
+                    window.clearTimeout(timeoutId);
+                };
+            }, []);
+            
+            const askQuestion = async (rawQuery) => {
+                const cleanQuery = rawQuery.trim();
+                if (!cleanQuery || loading || serverUnavailable) return;
+                
+                setQuery(cleanQuery);
+                setLoading(true);
+                setError(null);
+                setResponse(null);
+                
+                try {
+                    const res = await fetch(`${API_BASE_URL}/query`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            query: cleanQuery,
+                            user_role: userRole,
+                            department: department || null
+                        })
+                    });
+                    
+                    const data = await res.json().catch(() => null);
+                    if (!res.ok) {
+                        throw new Error(data?.detail || `Server error: ${res.status}`);
+                    }
+                    
+                    setResponse(data);
+                } catch (err) {
+                    const message = err instanceof Error ? err.message : "Failed to get a response.";
+                    const isNetworkError = err instanceof TypeError || /networkerror|failed to fetch|network request failed/i.test(message);
+                    setError(
+                        isNetworkError
+                            ? 'Cannot reach the assistant server. Start backend.py, then open http://127.0.0.1:8000.'
+                            : message
+                    );
+                    console.error(err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                void askQuestion(query);
+            };
+            
+            const handleTestQuery = (testQuery) => {
+                setQuery(testQuery);
+                void askQuestion(testQuery);
+            };
+            
+            const handleClear = () => {
+                if (loading) return;
+                setQuery('');
+                setResponse(null);
+                setError(null);
+            };
+            
+            return (
+                <div className="container">
+                    {/* Left Panel */}
+                    <div className="left-panel">
+                        <div className="header">
+                            <h1>🏥 Supra Hospital AI</h1>
+                            <p>Context-Aware Medical Assistant</p>
+                        </div>
+                        
+                        <div className="input-section">
+                            <form onSubmit={handleSubmit}>
+                                <div className="form-group">
+                                    <label htmlFor="query">Your Query</label>
+                                    <textarea
+                                        id="query"
+                                        value={query}
+                                        onChange={(e) => setQuery(e.target.value)}
+                                        placeholder="E.g., What pain medication should I give a post-TKR patient?"
+                                        required
+                                        disabled={serverUnavailable}
+                                        aria-describedby="clinical-note"
+                                    />
+                                </div>
+                                
+                                <div className="form-group">
+                                    <label htmlFor="user-role">Your Role</label>
+                                    <select
+                                        id="user-role"
+                                        value={userRole}
+                                        onChange={(e) => setUserRole(e.target.value)}
+                                        disabled={serverUnavailable}
+                                    >
+                                        <option>Doctor</option>
+                                        <option>Nurse</option>
+                                        <option>Pharmacist</option>
+                                        <option>Admin</option>
+                                    </select>
+                                </div>
+                                
+                                <div className="form-group">
+                                    <label htmlFor="department">Department (Optional)</label>
+                                    <select
+                                        id="department"
+                                        value={department}
+                                        onChange={(e) => setDepartment(e.target.value)}
+                                        disabled={serverUnavailable}
+                                    >
+                                        <option value="">-- Select Department --</option>
+                                        {departments.map(dept => (
+                                            <option key={dept} value={dept}>{dept}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                
+                                <div className="button-group">
+                                    <button type="submit" className="btn-primary" disabled={loading || serverUnavailable || !query.trim()}>
+                                        {loading ? 'Consulting…' : '🔍 Ask Assistant'}
+                                    </button>
+                                    <button type="button" className="btn-secondary" onClick={handleClear} disabled={loading || serverUnavailable}>
+                                        Clear
+                                    </button>
+                                </div>
+                                <p id="clinical-note" className="clinical-note">
+                                    Clinical decision-support prototype — verify recommendations against current hospital policy.
+                                </p>
+                            </form>
+                        </div>
+                        
+                        <div className="test-queries">
+                            <h3>Test Queries</h3>
+                            {testQueries.map((testQuery, idx) => (
+                                <button
+                                    key={idx}
+                                    type="button"
+                                    className={`test-query-btn${query === testQuery ? ' is-active' : ''}`}
+                                    onClick={() => handleTestQuery(testQuery)}
+                                    disabled={loading || serverUnavailable}
+                                    aria-pressed={query === testQuery}
+                                >
+                                    {testQuery}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    {/* Right Panel */}
+                    <div className="right-panel" aria-live="polite">
+                        {IS_FILE_MODE && serverState === 'checking' && (
+                            <div className="loading" role="status">
+                                <div className="spinner" aria-hidden="true"></div>
+                                <span>Checking the local assistant server...</span>
+                            </div>
+                        )}
+
+                        {IS_FILE_MODE && serverState === 'offline' && (
+                            <div className="no-response" role="status">
+                                <div className="empty-icon" aria-hidden="true">⚙️</div>
+                                <h2>Start the local assistant first</h2>
+                                <p>This file cannot start the Python API by itself. Run the command below from the project folder, then open the app at the local address.</p>
+                                <div className="launch-steps">
+                                    <code>source venv/bin/activate && python backend.py</code>
+                                </div>
+                                <a className="launch-link" href={APP_URL}>Open the local app</a>
+                            </div>
+                        )}
+
+                        {!response && !loading && !error && !serverUnavailable && (
+                            <div className="no-response" role="status">
+                                <div className="empty-icon" aria-hidden="true">🩺</div>
+                                <h2>Choose a question to get started</h2>
+                                <p>Use a starter question on the left or write your own. The assistant will search the hospital knowledge base before responding.</p>
+                            </div>
+                        )}
+                        
+                        {loading && (
+                            <div className="loading" role="status">
+                                <div className="spinner" aria-hidden="true"></div>
+                                <span>Consulting hospital database...</span>
+                            </div>
+                        )}
+                        
+                        {error && (
+                            <>
+                                <div className="response-header">
+                                    <h2>⚠️ Error</h2>
+                                </div>
+                                <div className="response-content">
+                                    <div className="error">{error}</div>
+                                    <p className="setup-hint">
+                                        {needsApiKey ? (
+                                            <>
+                                                Add a valid Anthropic API key, restart the server, and try again.<br/>
+                                                <code>export ANTHROPIC_API_KEY='your-key'</code>
+                                            </>
+                                        ) : (
+                                            <>
+                                                If the server is unavailable, start it from the project folder and then open the local app.<br/>
+                                                <code>source venv/bin/activate && python backend.py</code>
+                                            </>
+                                        )}
+                                    </p>
+                                </div>
+                            </>
+                        )}
+                        
+                        {response && (
+                            <>
+                                <div className="response-header">
+                                    <h2>{isLocalPreview ? '⚠️ Local Protocol Preview' : '🤖 Assistant Response'}</h2>
+                                    {isLocalPreview ? (
+                                        <span className="badge badge-local">Reference only</span>
+                                    ) : (
+                                        <span className={`badge badge-${response.confidence === 'HIGH' ? 'high' : 'medium'}`}>
+                                            {response.confidence || 'MEDIUM'} Confidence
+                                        </span>
+                                    )}
+                                </div>
+                                
+                                <div className="response-content">
+                                    {isLocalPreview ? (
+                                        <div className="local-preview-notice" role="note">
+                                            <strong>AI unavailable — reference records only</strong>
+                                            <p>{response.provider_notice || 'No AI-generated answer was produced.'}</p>
+                                            <p>Review the records below against the current hospital policy and EHR before making any clinical decision.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="response-text">
+                                            {response.response}
+                                        </div>
+                                    )}
+                                    
+                                    {relevantAlerts.length > 0 && (
+                                        <div className="info-section">
+                                            <h3>🚨 Patient Alerts</h3>
+                                            {relevantAlerts.map((alert, idx) => (
+                                                <div key={idx} className="alert-item">
+                                                    <h4>{alert.patient}</h4>
+                                                    <span className={`criticality criticality-${alert.severity.toLowerCase()}`}>
+                                                        {alert.severity}
+                                                    </span>
+                                                    <p>{alert.critical_info}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    
+                                    {relevantProtocols.length > 0 && (
+                                        <div className="info-section">
+                                            <h3>📋 Relevant Protocols</h3>
+                                            {relevantProtocols.map((proto, idx) => (
+                                                <div key={idx} className="protocol-item">
+                                                    <h4>{proto.title}</h4>
+                                                    <span className={`criticality criticality-${proto.criticality.toLowerCase()}`}>
+                                                        {proto.criticality}
+                                                    </span>
+                                                    <p>{proto.excerpt}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {isLocalPreview && relevantAlerts.length === 0 && relevantProtocols.length === 0 && (
+                                        <div className="local-preview-notice" role="note">
+                                            No local protocol records matched this query. No AI answer was generated.
+                                        </div>
+                                    )}
+                                    
+                                    <div className="meta-info">
+                                        <div className="meta-item">
+                                            <span className="meta-label">Protocols Found</span>
+                                            <span className="meta-value">{relevantProtocols.length}</span>
+                                        </div>
+                                        <div className="meta-item">
+                                            <span className="meta-label">Alerts Found</span>
+                                            <span className="meta-value">{relevantAlerts.length}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+        
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

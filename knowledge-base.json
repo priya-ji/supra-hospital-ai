@@ -86,6 +86,7 @@
       "gender": "Female",
       "condition": "Type 2 Diabetes Mellitus",
       "special_notes": "Observes Ekadashi fasting twice monthly. 3 hypoglycemia episodes in 2025 before protocol adjustment. Requires special fasting protocol.",
+      "related_protocol_ids": ["diabetic-fasting"],
       "severity": "MEDIUM"
     }
   ],

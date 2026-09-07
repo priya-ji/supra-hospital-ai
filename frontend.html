@@ -254,9 +254,9 @@
             color: #3949ab;
         }
 
-        .badge-local {
-            background: #fff3cd;
-            color: #7a5a00;
+        .badge-direct {
+            background: #e8edff;
+            color: #3949ab;
         }
         
         .badge-critical {
@@ -456,20 +456,52 @@
             font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         }
 
-        .local-preview-notice {
-            margin-bottom: 18px;
-            padding: 14px 16px;
-            border: 1px solid #f0d58a;
-            border-left: 4px solid #d69e2e;
+        .local-record-status {
+            margin-bottom: 16px;
+            padding: 10px 12px;
+            border: 1px solid #dce2ff;
+            border-left: 4px solid #667eea;
             border-radius: 6px;
-            background: #fff9e8;
-            color: #664d03;
-            line-height: 1.5;
+            background: #f7f8ff;
+            color: #3e4b88;
+            font-size: 13px;
+            line-height: 1.45;
         }
 
-        .local-preview-notice strong {
+        .local-record-status strong {
             display: block;
-            margin-bottom: 4px;
+        }
+
+        .result-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .summary-chip {
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: #f1f3f8;
+            color: #4e5663;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .system-status {
+            margin-top: 18px;
+            color: #686f7a;
+            font-size: 12px;
+        }
+
+        .system-status summary {
+            cursor: pointer;
+            color: #5368bc;
+        }
+
+        .system-status p {
+            margin-top: 6px;
+            line-height: 1.45;
         }
 
         .clinical-note {
@@ -582,7 +614,7 @@
                 ? response.relevant_protocols
                 : [];
             const serverUnavailable = IS_FILE_MODE && serverState !== 'ready';
-            const isLocalPreview = response?.mode === 'protocol_preview';
+            const isLocalRecordResult = response?.answer_generated === false;
             const needsApiKey = typeof error === 'string'
                 && /anthropic_api_key|invalid\s+(?:x-)?api[-_\s]?key|authentication|unauthorized/i.test(error);
 
@@ -822,9 +854,9 @@
                         {response && (
                             <>
                                 <div className="response-header">
-                                    <h2>{isLocalPreview ? '⚠️ Local Protocol Preview' : '🤖 Assistant Response'}</h2>
-                                    {isLocalPreview ? (
-                                        <span className="badge badge-local">Reference only</span>
+                                    <h2>{isLocalRecordResult ? 'Hospital Protocol Matches' : '🤖 Assistant Response'}</h2>
+                                    {isLocalRecordResult ? (
+                                        <span className="badge badge-direct">Direct records</span>
                                     ) : (
                                         <span className={`badge badge-${response.confidence === 'HIGH' ? 'high' : 'medium'}`}>
                                             {response.confidence || 'MEDIUM'} Confidence
@@ -833,12 +865,17 @@
                                 </div>
                                 
                                 <div className="response-content">
-                                    {isLocalPreview ? (
-                                        <div className="local-preview-notice" role="note">
-                                            <strong>AI unavailable — reference records only</strong>
-                                            <p>{response.provider_notice || 'No AI-generated answer was produced.'}</p>
-                                            <p>Review the records below against the current hospital policy and EHR before making any clinical decision.</p>
-                                        </div>
+                                    {isLocalRecordResult ? (
+                                        <>
+                                            <div className="local-record-status" role="note">
+                                                <strong>Showing direct Supra hospital records</strong>
+                                                AI summary is unavailable. Verify the current hospital policy, patient identity, and EHR before acting.
+                                            </div>
+                                            <div className="result-summary" aria-label="Match summary">
+                                                <span className="summary-chip">{relevantProtocols.length} protocol{relevantProtocols.length === 1 ? '' : 's'}</span>
+                                                <span className="summary-chip">{relevantAlerts.length} patient alert{relevantAlerts.length === 1 ? '' : 's'}</span>
+                                            </div>
+                                        </>
                                     ) : (
                                         <div className="response-text">
                                             {response.response}
@@ -847,7 +884,7 @@
                                     
                                     {relevantAlerts.length > 0 && (
                                         <div className="info-section">
-                                            <h3>🚨 Patient Alerts</h3>
+                                            <h3>🚨 Matched Patient Alerts</h3>
                                             {relevantAlerts.map((alert, idx) => (
                                                 <div key={idx} className="alert-item">
                                                     <h4>{alert.patient}</h4>
@@ -862,35 +899,42 @@
                                     
                                     {relevantProtocols.length > 0 && (
                                         <div className="info-section">
-                                            <h3>📋 Relevant Protocols</h3>
+                                            <h3>{isLocalRecordResult ? '📋 Matched Hospital Protocols' : '📋 Relevant Protocols'}</h3>
                                             {relevantProtocols.map((proto, idx) => (
                                                 <div key={idx} className="protocol-item">
                                                     <h4>{proto.title}</h4>
                                                     <span className={`criticality criticality-${proto.criticality.toLowerCase()}`}>
                                                         {proto.criticality}
                                                     </span>
-                                                    <p>{proto.excerpt}</p>
+                                                    <p>{isLocalRecordResult ? (proto.content || proto.excerpt) : proto.excerpt}</p>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
 
-                                    {isLocalPreview && relevantAlerts.length === 0 && relevantProtocols.length === 0 && (
-                                        <div className="local-preview-notice" role="note">
-                                            No local protocol records matched this query. No AI answer was generated.
+                                    {isLocalRecordResult && relevantAlerts.length === 0 && relevantProtocols.length === 0 && (
+                                        <div className="local-record-status" role="note">
+                                            No matching records were found in the local library. Refine the query or consult the current hospital policy.
                                         </div>
                                     )}
                                     
-                                    <div className="meta-info">
-                                        <div className="meta-item">
-                                            <span className="meta-label">Protocols Found</span>
-                                            <span className="meta-value">{relevantProtocols.length}</span>
+                                    {isLocalRecordResult ? (
+                                        <details className="system-status">
+                                            <summary>System status</summary>
+                                            <p>{response.provider_notice || 'Live AI summary is unavailable. Configure a valid ANTHROPIC_API_KEY to enable it.'}</p>
+                                        </details>
+                                    ) : (
+                                        <div className="meta-info">
+                                            <div className="meta-item">
+                                                <span className="meta-label">Protocols Found</span>
+                                                <span className="meta-value">{relevantProtocols.length}</span>
+                                            </div>
+                                            <div className="meta-item">
+                                                <span className="meta-label">Alerts Found</span>
+                                                <span className="meta-value">{relevantAlerts.length}</span>
+                                            </div>
                                         </div>
-                                        <div className="meta-item">
-                                            <span className="meta-label">Alerts Found</span>
-                                            <span className="meta-value">{relevantAlerts.length}</span>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             </>
                         )}

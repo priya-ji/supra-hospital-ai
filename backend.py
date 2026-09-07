@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 import json
+import logging
 import os
 from pathlib import Path
 import re
@@ -10,6 +11,7 @@ from typing import Optional
 import httpx
 
 app = FastAPI(title="Supra Hospital AI Assistant")
+logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
@@ -23,10 +25,10 @@ class CredentialConfigurationError(Exception):
 # These terms make keyword retrieval less noisy while retaining clinical terms
 # such as TKR, DVT, NSAID, and sepsis.
 STOP_WORDS = frozenset({
-    "a", "an", "and", "are", "at", "be", "before", "can", "could", "do",
+    "a", "about", "after", "an", "and", "are", "at", "be", "before", "can", "could", "do",
     "for", "from", "give", "how", "i", "in", "is", "it", "me", "my", "of",
-    "on", "or", "our", "patient", "patients", "please", "should", "the", "to",
-    "was", "we", "what", "when", "with", "would", "you", "your",
+    "has", "on", "or", "our", "patient", "patients", "please", "prescribe", "prescription",
+    "should", "tell", "the", "to", "was", "we", "what", "when", "with", "would", "you", "your",
 })
 GENERIC_TERMS = frozenset({"care", "management", "medication", "medicine", "pain", "protocol", "surgery"})
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
@@ -94,20 +96,17 @@ def search_knowledge_base(query: str, department: Optional[str] = None):
     The previous exact-substring lookup could not match natural-language
     questions such as the supplied TKR, DVT, Rajan, or Padma test queries.
     """
-    query_lower = query.casefold()
     query_terms = _tokens(query)
 
     relevant_alerts = []
-    alert_context_terms: set[str] = set()
+    related_protocol_ids: set[str] = set()
     for alert in KNOWLEDGE_BASE["patient_alerts"]:
-        alert_terms = _tokens(_record_text(alert))
-        name = str(alert.get("name", "")).casefold()
-        overlap = query_terms & alert_terms
-        if (name and name in query_lower) or _has_specific_match(overlap):
+        # Never surface a patient alert from a broad clinical term alone.
+        # It must be an explicit name-token match (e.g. "Rajan" or "Padma").
+        patient_name_terms = _tokens(alert.get("name", ""))
+        if patient_name_terms & query_terms:
             relevant_alerts.append(alert)
-            # A named patient can bring clinically relevant protocol keywords
-            # (for example Padma's diabetes and fasting notes) into the search.
-            alert_context_terms.update(alert_terms)
+            related_protocol_ids.update(alert.get("related_protocol_ids", []))
 
     selected_department = (department or "").casefold().strip()
     ranked_protocols = []
@@ -115,17 +114,25 @@ def search_knowledge_base(query: str, department: Optional[str] = None):
         protocol_department = str(protocol.get("department", "")).casefold()
 
         protocol_terms = _tokens(_record_text(protocol))
-        direct_overlap = query_terms & protocol_terms
-        alert_overlap = alert_context_terms & protocol_terms
-        combined_overlap = direct_overlap | alert_overlap
+        # Anchor ordinary lookups to stable record identifiers and titles.
+        # Content words help rank an already-matched record but never alone
+        # surface an unrelated protocol in reference mode.
+        protocol_anchor_terms = _tokens(
+            f"{protocol.get('id', '')} {protocol.get('title', '')}"
+        )
+        anchor_overlap = query_terms & protocol_anchor_terms
+        content_overlap = query_terms & protocol_terms
+        is_patient_linked = protocol.get("id") in related_protocol_ids
 
-        if not _has_specific_match(combined_overlap):
+        if not _has_specific_match(anchor_overlap) and not is_patient_linked:
             continue
 
         # Direct query matches always win over an optional department choice.
         # A user asking about post-TKR pain should still see the orthopaedic
         # protocol if a previously selected department was General Medicine.
-        score = len(direct_overlap) * 3 + len(alert_overlap)
+        score = len(anchor_overlap) * 5 + len(content_overlap)
+        if is_patient_linked:
+            score += 10
         if selected_department and selected_department in protocol_department:
             score += 1
         ranked_protocols.append((score, protocol))
@@ -167,7 +174,12 @@ RELEVANT SUPRA PROTOCOLS FOR THIS QUERY:
         for alert in alerts:
             context += f"\n- Patient: {alert['name']}"
             context += f"\n  Severity: {alert.get('severity', 'UNKNOWN')}"
-            context += f"\n  ⚠️ {alert.get('critical_info', alert['condition'])}"
+            alert_text = (
+                alert.get("critical_info")
+                or alert.get("special_notes")
+                or alert.get("condition", "No additional alert details recorded.")
+            )
+            context += f"\n  ⚠️ {alert_text}"
     
     context += f"\n\nUSER ROLE: {user_role}"
     context += f"\n\nQUERY: {query}"
@@ -176,24 +188,14 @@ RELEVANT SUPRA PROTOCOLS FOR THIS QUERY:
     return context
 
 
-def build_local_preview(protocols: list, alerts: list) -> str:
-    """Create a deterministic reference view when the live model is unavailable.
-
-    This intentionally does not synthesize a diagnosis or treatment plan. It
-    only directs the user to the protocol and alert records returned below.
-    """
-    match_summary = []
-    if alerts:
-        match_summary.append(f"{len(alerts)} patient alert record(s)")
-    if protocols:
-        match_summary.append(f"{len(protocols)} hospital protocol record(s)")
-
-    matches = " and ".join(match_summary) if match_summary else "no matching local records"
-    return (
-        "AI-generated guidance is unavailable. The records below are direct local "
-        "protocol and safety-alert matches only; no patient-specific answer has been generated.\n\n"
-        f"The local search found {matches}. Verify the current hospital policy and EHR before acting."
-    )
+def build_local_record_result(protocols: list, alerts: list) -> str:
+    """Describe the deterministic result without inventing clinical guidance."""
+    if protocols or alerts:
+        return (
+            "Direct local hospital records are available in this response. "
+            "No AI-generated recommendation was produced."
+        )
+    return "No local hospital reference records matched this query."
 
 async def call_claude_api(prompt: str) -> str:
     """Call Claude and turn upstream failures into useful API errors."""
@@ -266,6 +268,38 @@ async def health_check():
         "endpoints": ["/query", "/protocols", "/alerts", "/formulary"]
     }
 
+
+def serialize_protocol(protocol: dict) -> dict:
+    """Return a complete source record plus a compact display excerpt."""
+    content = protocol["content"]
+    return {
+        "id": protocol["id"],
+        "title": protocol["title"],
+        "criticality": protocol.get("criticality", "MEDIUM"),
+        "department": protocol.get("department", ""),
+        "content": content,
+        "excerpt": content[:200] + ("..." if len(content) > 200 else ""),
+    }
+
+
+def serialize_alert(alert: dict) -> dict:
+    """Return the alert source fields needed to verify a local record."""
+    display_text = (
+        alert.get("critical_info")
+        or alert.get("special_notes")
+        or alert.get("condition", "No additional alert details recorded.")
+    )
+    return {
+        "id": alert["id"],
+        "patient": alert["name"],
+        "severity": alert.get("severity", "UNKNOWN"),
+        "condition": alert.get("condition", ""),
+        "critical_info": display_text,
+        "special_notes": alert.get("special_notes", ""),
+        "allergies": alert.get("allergies", []),
+    }
+
+
 @app.post("/query", response_model=QueryResponse)
 async def process_query(request: QueryRequest):
     """Process a medical query using hospital context"""
@@ -291,36 +325,23 @@ async def process_query(request: QueryRequest):
     except CredentialConfigurationError as exc:
         if not LOCAL_PREVIEW_ENABLED:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
-        mode = "protocol_preview"
+        logger.warning("Live AI unavailable; returning local record result: %s", exc)
+        mode = "local_record_result"
         answer_generated = False
-        provider_notice = str(exc)
-        assistant_response = build_local_preview(protocols, alerts)
+        provider_notice = "Live AI response is unavailable. Configure a valid API key to enable an AI summary."
+        assistant_response = build_local_record_result(protocols, alerts)
     
     # Determine confidence and reasoning
-    confidence = "NOT_APPLICABLE" if mode == "protocol_preview" else ("HIGH" if (protocols or alerts) else "MEDIUM")
+    confidence = "NOT_APPLICABLE" if mode == "local_record_result" else ("HIGH" if (protocols or alerts) else "MEDIUM")
     reasoning = f"Found {len(protocols)} relevant protocols and {len(alerts)} patient alerts"
-    if mode == "protocol_preview":
+    if mode == "local_record_result":
         reasoning += "; AI-generated guidance unavailable, returning direct local records only"
     
     return QueryResponse(
         query=request.query,
         response=assistant_response,
-        relevant_protocols=[
-            {
-                "title": p['title'],
-                "criticality": p.get('criticality', 'MEDIUM'),
-                "excerpt": p['content'][:200] + "..."
-            }
-            for p in protocols
-        ],
-        relevant_alerts=[
-            {
-                "patient": a['name'],
-                "severity": a.get('severity', 'UNKNOWN'),
-                "critical_info": a.get('critical_info', a['condition'])
-            }
-            for a in alerts
-        ],
+        relevant_protocols=[serialize_protocol(protocol) for protocol in protocols],
+        relevant_alerts=[serialize_alert(alert) for alert in alerts],
         confidence=confidence,
         reasoning=reasoning,
         mode=mode,

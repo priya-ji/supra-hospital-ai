@@ -20,8 +20,8 @@ python backend.py
 
 **That's it.** System is live.
 
-If the Anthropic key is missing or rejected, the prototype shows a clearly
-labeled, read-only local protocol preview instead of an AI-generated answer.
+If the Anthropic key is missing or rejected, the prototype shows clearly
+labeled, read-only local hospital records instead of an AI-generated answer.
 Set a valid key and restart the server to enable live AI responses. Set
 `SUPRA_LOCAL_PREVIEW=false` to return an error instead (recommended for
 production deployments).

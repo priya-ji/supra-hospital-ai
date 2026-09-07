@@ -1,2 +1,15 @@
+[project]
+name = "supra-hospital-ai"
+version = "0.1.0"
+description = "Supra Hospital AI Assistant"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.104.1",
+    "uvicorn==0.24.0",
+    "httpx==0.25.0",
+    "pydantic==2.4.2",
+    "python-multipart==0.0.6",
+]
+
 [tool.vercel]
 entrypoint = "backend:app"
